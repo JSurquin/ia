@@ -55,21 +55,34 @@ async function rag(question, topK = 3) {
     [JSON.stringify(queryVector), topK]
   );
 
-  // Concatener les contenus des documents trouves pour former le contexte
-  const context = res.rows.map((r) => r.content).join("\n\n");
-
   // Afficher les documents trouves avec leur score
-  console.log(`   Found ${res.rows.length} relevant documents\n`);
+  console.log(`   Found ${res.rows.length} documents\n`);
   for (const row of res.rows) {
     const sim = (row.similarity * 100).toFixed(1);
     console.log(`   [${sim}%] ${row.content.slice(0, 80)}...`);
   }
 
+  // --- Filtre de pertinence (seuil de similarite) ---
+  // Si aucun document ne depasse 30% de similarite, la question est hors sujet
+  // On bloque AVANT d'appeler le LLM → economie de tokens + protection anti-injection
+  const SIMILARITY_THRESHOLD = 0.3;
+  const relevantDocs = res.rows.filter((r) => r.similarity >= SIMILARITY_THRESHOLD);
+
+  if (relevantDocs.length === 0) {
+    const msg = "Desole, cette question ne semble pas liee a la documentation disponible. Je ne peux repondre qu'aux questions en rapport avec les documents indexes.";
+    console.log("\n--- RESPONSE ---\n");
+    console.log(msg);
+    console.log("\n--- END ---");
+    await client.end();
+    return msg;
+  }
+
+  console.log(`   ${relevantDocs.length}/${res.rows.length} documents au-dessus du seuil (${SIMILARITY_THRESHOLD * 100}%)\n`);
+
+  // Concatener uniquement les documents pertinents pour former le contexte
+  const context = relevantDocs.map((r) => r.content).join("\n\n");
+
   // --- Etape 3 : Construire le prompt pour le LLM ---
-  // Le prompt contient :
-  //   - Les instructions systeme (role, contraintes)
-  //   - Le contexte (les documents pertinents trouves dans pgvector)
-  //   - La question de l'utilisateur
   const prompt = `Tu es un assistant technique d'une application SaaS.
 Tu reponds UNIQUEMENT aux questions qui concernent le contexte ci-dessous.
 
@@ -85,7 +98,7 @@ ${context}
 
 Question: ${question}
 
-Réponse:`;
+Reponse:`;
 
   // --- Etape 4 : Appeler le LLM via l'API Ollama ---
   console.log("\n3. Calling LLM...\n");

@@ -132,14 +132,28 @@ async function handleQuestion(question) {
   const docs = await searchDocuments(question);
 
   // Etape 2 : afficher les documents trouves
-  console.log(`  ${docs.length} documents pertinents trouves :`);
+  console.log(`  ${docs.length} documents trouves :`);
   for (const doc of docs) {
-    const sim = (doc.similarity * 100).toFixed(1);  // Convertir en pourcentage
+    const sim = (doc.similarity * 100).toFixed(1);
     console.log(`    [${sim}%] ${doc.content.slice(0, 80)}...`);
   }
 
-  // Etape 3 : construire le contexte a partir des documents
-  const context = docs.map((d) => d.content).join("\n\n");
+  // Filtre de pertinence : si aucun doc ne depasse le seuil, on bloque avant le LLM
+  const SIMILARITY_THRESHOLD = 0.3;
+  const relevantDocs = docs.filter((d) => d.similarity >= SIMILARITY_THRESHOLD);
+
+  if (relevantDocs.length === 0) {
+    const msg = "Cette question ne semble pas liee a la documentation disponible. Je ne peux repondre qu'aux sujets couverts par nos documents.";
+    conversationHistory.push({ role: "user", content: question });
+    conversationHistory.push({ role: "assistant", content: msg });
+    console.log(`\n  ${msg}\n`);
+    return;
+  }
+
+  console.log(`  ${relevantDocs.length}/${docs.length} documents au-dessus du seuil (${SIMILARITY_THRESHOLD * 100}%)`);
+
+  // Etape 3 : construire le contexte uniquement a partir des documents pertinents
+  const context = relevantDocs.map((d) => d.content).join("\n\n");
 
   // Etape 4 : appeler le LLM
   console.log("\n  Reflexion en cours...\n");
