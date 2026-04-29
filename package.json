@@ -1,0 +1,19 @@
+{
+  "name": "rag-pgvector",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "setup": "node src/setup.js",
+    "init-db": "node src/init-db.js",
+    "ingest": "node src/ingest.js",
+    "search": "node src/search.js",
+    "rag": "node src/rag.js",
+    "agent": "node src/agent.js"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.27",
+    "@langchain/core": "^1.1.42",
+    "@langchain/ollama": "^1.2.7",
+    "pg": "^8.20.0"
+  }
+}
