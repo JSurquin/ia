@@ -5,8 +5,14 @@
 // Le flow complet :
 //   1. Question → Embedding (Ollama / nomic-embed-text)
 //   2. Embedding → pgvector → Top K documents
-//   3. Documents + Question → LLM (Ollama / llama3.2)
-//   4. LLM → Reponse
+//   3. Filtre de pertinence (seuil 30% similarite)
+//   4. Documents + Question → LLM (Ollama / llama3.2)
+//   5. LLM → Reponse
+//
+// SECURITE (anti prompt-injection) :
+//   - Seuil de similarite : si aucun doc > 30%, on bloque avant le LLM
+//   - Prompt systeme durci : refuse hors-sujet, role-switch, reveal
+//   - Le LLM ne repond qu'a partir du contexte fourni
 //
 // Usage : npm run rag -- "ta question"
 // ============================================================

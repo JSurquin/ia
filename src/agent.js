@@ -6,6 +6,11 @@
 // et te repond. Il garde l'historique de conversation pour
 // que le LLM ait le contexte des echanges precedents.
 //
+// SECURITE (anti prompt-injection) :
+//   - Prompt systeme durci : refuse hors-sujet, role-switch, reveal
+//   - Le LLM ne repond qu'a partir du contexte de la base documentaire
+//   - Voir la fonction askLLM() pour les regles completes
+//
 // Usage : npm run agent
 // ============================================================
 
@@ -79,6 +84,7 @@ async function askLLM(question, context) {
     .join("\n");
 
   // Le prompt systeme qui cadre le comportement du LLM
+  // Contient des regles anti-injection pour empecher le LLM de repondre hors-sujet
   const prompt = `Tu es un assistant technique d'une application SaaS.
 Tu reponds UNIQUEMENT aux questions qui concernent le contexte ci-dessous.
 
